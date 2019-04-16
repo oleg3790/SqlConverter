@@ -1,6 +1,6 @@
 ## Overview
 
-Library which exposes a service that will convert (a specific DB's) SQL DML (update, insert and merge) into selects and partially validate parameters
+Library which exposes a service that will convert (a specific DB's) SQL DML (update, insert and merge) into a select and partially validate parameters
 
 ## Usage
 
