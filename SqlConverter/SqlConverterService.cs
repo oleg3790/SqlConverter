@@ -8,7 +8,7 @@ using SqlConverter.Extensions;
 using Newtonsoft.Json;
 using SqlConverter.Validation;
 
-namespace SqlConverter.Services
+namespace SqlConverter
 {
     public sealed class SqlConverterService : ConstantBase
     {
