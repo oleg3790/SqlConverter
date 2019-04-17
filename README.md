@@ -1,6 +1,6 @@
 ## Overview
 
-Library which exposes a service that will convert (a specific DB's) SQL DML (update, insert and merge) into a select and partially validate parameters
+Exposes a service that will convert (vA specific) SQL DML (update, insert and merge) into select and partially validate parameters
 
 ## Usage
 
@@ -18,3 +18,7 @@ else
     string status = converter.GetValidationErrorMessage();
 }     
 ```
+
+## Logging
+
+Log4Net is used as the logging service, just configure Log4Net in the consuming application.
