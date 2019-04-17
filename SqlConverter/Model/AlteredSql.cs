@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
+using log4net;
+using System.Reflection;
 
 namespace SqlConverter.Model
 {
@@ -10,6 +12,8 @@ namespace SqlConverter.Model
     /// </summary>
     internal sealed class AlteredSql : ConstantBase
     {
+        private readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         public string Sql { get; set; }
 
         public Dictionary<string, string> SubqueryDictionary { get; set; }
@@ -20,6 +24,7 @@ namespace SqlConverter.Model
         {
             // Clean sql first to remove newline chars
             string cleanedSql = CleanSql(sql);
+            log.Debug($"Cleaned (newlines removed) SQL: {cleanedSql}");
 
             // Execute query string removals first as there might be query strings inside of subqueries
             // which will cause an issue if not replaced first and RevertSubqueryState() extension is used
@@ -30,11 +35,13 @@ namespace SqlConverter.Model
 
         private Dictionary<string, string> GetSubqueryDictionary(ref string sql)
         {
+            log.Info("Begin subquery string build");
             return RemoveMatchItems(ref sql, SUBQUERY_REGEX, SUBQUERY_PLACEHOLDER);
         }
 
         private Dictionary<string, string> GetQueryStringDictionary(ref string sql)
         {
+            log.Info("Begin query string build");
             return RemoveMatchItems(ref sql, QUERYSTRING_REGEX, QUERYSTRING_PLACEHOLDER);
         }
 
@@ -51,11 +58,13 @@ namespace SqlConverter.Model
             int count = 1;
 
             MatchCollection matchCollection = Regex.Matches(sql, matchRegex, REGEX_OPTIONS);
+            log.Debug($"Found {matchCollection.Count} items to substitute");
 
             foreach (var match in matchCollection.Cast<Match>().Select(x => x.Value).Distinct())
             {
                 string tmp = string.Format(placeholder, count.ToString());
                 dictionary.Add(tmp, match);
+                log.Debug($"Substitution added: {tmp} => {match}");
                 sql = sql.Replace(match, tmp);
                 count += 1;
             }

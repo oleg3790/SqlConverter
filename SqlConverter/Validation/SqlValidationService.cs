@@ -5,11 +5,15 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using SqlConverter.Extensions;
 using System;
+using log4net;
+using System.Reflection;
 
 namespace SqlConverter.Validation
 {
     internal sealed class SqlValidationService : ConstantBase
     {
+        private readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         private readonly IStatement _statement;
         private readonly AlteredSql _alteredSqlObj;
         private TimeSpan _regexTimeoutLimit = new TimeSpan(0, 0, 0, 0, 250);
@@ -44,11 +48,13 @@ namespace SqlConverter.Validation
 
         public ParameterValidationResult ValidateQueryParameters(string fullQueryParameters)
         {
+            log.Info("Begin query parameter validation");
             // Revert the altered state so that we can validate subqueries
             fullQueryParameters = _alteredSqlObj.RevertSubqueryState(fullQueryParameters);
 
             var paramResults = new ParameterValidationResult();            
             MatchCollection subqueryMatches = Regex.Matches(fullQueryParameters, SUBQUERY_REGEX, REGEX_OPTIONS);
+            log.Debug($"Found {subqueryMatches.Count} subqueries");
 
             foreach (Match subqueryMatch in subqueryMatches)
             {
@@ -98,13 +104,15 @@ namespace SqlConverter.Validation
 
         private void DoValidateParameters(ref ParameterValidationResult result, string queryParameters)
         {
+            log.Info("Begin parameter validation");
             // TODO: add some sort of parameter string index tracker in case we see parameters of subqueries that are identical. 
             //       Right now ParameterValidationResult only stores the param string where the error is encountered
 
             // Validate there are no more than 1 where parameter
-            MatchCollection whereMatchCollection = Regex.Matches(queryParameters, "where", REGEX_OPTIONS);
+            MatchCollection whereMatchCollection = Regex.Matches(queryParameters, "where", REGEX_OPTIONS);           
             if (whereMatchCollection.Count > 1)
             {
+                log.Error($"{whereMatchCollection.Count} where paremeters found");
                 result.IsValid = false;
 
                 foreach (Match match in whereMatchCollection)
@@ -115,8 +123,9 @@ namespace SqlConverter.Validation
             paramArray = paramArray.Where(x => !string.IsNullOrWhiteSpace(x.Trim(new[] { ' ', ';', '\t' }))).ToArray();
 
             foreach (string param in paramArray)
-            {
+            {                
                 string cleanParameter = _alteredSqlObj.RevertQueryStringState(param.Trim(new[] { ' ', ';' }));
+                log.Debug($"Processing parameter (cleaned) \"{cleanParameter}\"");
                 if (!string.IsNullOrWhiteSpace(cleanParameter))
                 {
                     try
@@ -165,6 +174,7 @@ namespace SqlConverter.Validation
                     }
                     catch (RegexMatchTimeoutException)
                     {
+                        log.Error("Regex timeout during parameter validation");
                         result.IsValid = false;
                         result.ParamErrors.Add(cleanParameter);
                     }

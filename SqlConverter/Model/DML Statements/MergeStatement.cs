@@ -1,12 +1,15 @@
-﻿using SqlConverter.Resources;
+﻿using log4net;
+using SqlConverter.Resources;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace SqlConverter.Model
 {
     internal class MergeStatement : ConstantBase, IStatement
     {
+        private readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private const string SELECT_REGEX = @"^([ ]+)?\(([ ]+)?select.+?where";
 
         private StatementType _statementType;
@@ -25,6 +28,7 @@ namespace SqlConverter.Model
 
         public void ExecuteAlterations(AlteredSql alteredSqlObj)
         {
+            log.Info("Begin merge statement conversion");
             alteredSqlObj.Sql = alteredSqlObj.SubqueryDictionary["(SUB_1)"].Trim(new[] { '(', ')' }).Trim(' ');
         }
 

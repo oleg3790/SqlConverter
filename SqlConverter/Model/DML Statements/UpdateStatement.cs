@@ -1,13 +1,16 @@
-﻿using SqlConverter.Resources;
+﻿using log4net;
+using SqlConverter.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace SqlConverter.Model
 {
     internal sealed class UpdateStatement : ConstantBase, IStatement
     {
+        private readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly StatementType _statementType;
         public StatementType StatementType
         {
@@ -24,9 +27,11 @@ namespace SqlConverter.Model
 
         public void ExecuteAlterations(AlteredSql alteredSqlObj)
         {
+            log.Info("Begin update statement conversion");
             // Collect set fields
             Match setMatch = Regex.Match(alteredSqlObj.Sql, @"set[\s\S]+?((?:\w\.)?\w+[\s\S]+?=[\s\S]+?)where", REGEX_OPTIONS);
             MatchCollection setFieldCollection = Regex.Matches(setMatch.Groups[1].Value, @"(\w+)(?:[ ]*)[\n]*?=", REGEX_OPTIONS);
+            log.Debug($"Found {setFieldCollection.Count} SET fields");
 
             // Merge set fields to a list
             List<string> setFields = new List<string>();

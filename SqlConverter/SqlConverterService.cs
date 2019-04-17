@@ -7,11 +7,15 @@ using SqlConverter.Model;
 using SqlConverter.Extensions;
 using Newtonsoft.Json;
 using SqlConverter.Validation;
+using log4net;
+using System.Reflection;
 
 namespace SqlConverter
 {
     public sealed class SqlConverterService : ConstantBase
     {
+        private readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         private readonly string _sql;
         private readonly string _logicalId;
 
@@ -19,6 +23,7 @@ namespace SqlConverter
 
         public SqlConverterService(string sql, string logicalId)
         {
+            log.Info("** Begin Conversion **");
             _sql = sql;
             _logicalId = CleanLogicalId(logicalId); 
 
@@ -47,7 +52,10 @@ namespace SqlConverter
         
         private string CleanLogicalId(string logicalId)
         {
-            return logicalId.Trim(' ').ToUpper(); // logicalId should always be uppercase
+            var cleanedId = logicalId.Trim(' ').ToUpper(); // logicalId should always be uppercase
+            log.Info($"Cleaned LogicalId {cleanedId}");
+
+            return cleanedId;
         }
 
         private void ValidateConversionPrerequisites()
@@ -61,21 +69,23 @@ namespace SqlConverter
                 new Tuple<bool, string>(!_sql.Contains(";"), MessageResource.NoSemicolon)
             };
 
-            string result = string.Empty;
+            string errorMessage = string.Empty;
             foreach (var item in checkList)
             {
                 if (item.Item1)
                 {
-                    result = item.Item2;
+                    errorMessage = item.Item2;
+                    log.Error($"Invalid SQL ({errorMessage}): \n\"{_sql}\"");
                     break;
                 }                    
             }
-            _conversionPrerequisite = new ConversionPrerequisite(string.IsNullOrEmpty(result), result);
+            _conversionPrerequisite = new ConversionPrerequisite(string.IsNullOrEmpty(errorMessage), errorMessage);            
         }
 
         private List<IStatement> ToContextList()
         {
             MatchCollection sqlMatchCollection = Regex.Matches(_sql, @"[\s\S]+?;", REGEX_OPTIONS);
+            log.Debug($"Total SQL found => {sqlMatchCollection.Count}");
             var statementCollection = new List<IStatement>();
 
             foreach (Match queryMatch in sqlMatchCollection)
@@ -86,6 +96,7 @@ namespace SqlConverter
 
                 StatementType matchedType;
                 Enum.TryParse(firstWordMatch.Value.ToTitleCase(), out matchedType);
+                log.Debug($"Matched type of {matchedType.ToString()}");
 
                 IStatement statement = null;
                 switch (matchedType)
@@ -131,6 +142,7 @@ namespace SqlConverter
 
                 if (validationResult.IsValid)
                 {
+                    log.Info("SQL has been validated");
                     // Get Altered SQL object (placeholding subqueries, query strings, etc.)
                     // We do this to make the conversion process possible on the actual sql; disregarding 
                     // elements that would throw the conversion process off
@@ -144,9 +156,11 @@ namespace SqlConverter
                     // Revert altered state and reinstall placeheld items sql statement
                     result.Sql = alteredSqlObj.RevertAlteredState();
                     VerifyFinalResult(ref result, statement.StatementType.ToString());
+                    log.Info($"Conversion completed for: \n{result.Sql}");
                 }
                 else
                 {
+                    log.Error("SQL did not pass validation");
                     result.IsError = true;
                     result.ResultMessage = validationResult.ResultMessage;
 
@@ -159,6 +173,7 @@ namespace SqlConverter
             }
             catch (RegexMatchTimeoutException)
             {
+                log.Error("Regex timeout during conversion");
                 result.IsError = true;
                 result.ResultMessage = MessageResource.Timeout;
             }            

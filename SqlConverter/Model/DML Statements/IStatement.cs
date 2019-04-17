@@ -6,7 +6,7 @@
         string Sql { get; set; }
 
         /// <summary>
-        /// Validates the stement specific parameters
+        /// Validates the statement specific parameters
         /// </summary>
         /// <param name="alteredSqlObj"></param>
         /// <returns></returns>

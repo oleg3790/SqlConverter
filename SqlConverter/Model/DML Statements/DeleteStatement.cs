@@ -1,12 +1,15 @@
-﻿using SqlConverter.Resources;
+﻿using log4net;
+using SqlConverter.Resources;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace SqlConverter.Model
 {
     internal class DeleteStatement : ConstantBase, IStatement
     {
+        private readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private const string DELETE_REGEX = @"delete[ ]+from[ ]+(\w+\.\w+){1}[ ]+(\w+[ ]+)?(?=where)";
 
         private StatementType _statementType;
@@ -29,6 +32,7 @@ namespace SqlConverter.Model
 
             if (deleteMatch.Success)
             {
+                log.Info("Begin delete statement conversion");
                 alteredSqlObj.Sql = alteredSqlObj.Sql.Replace(
                     deleteMatch.Value
                     , string.Format("select *\nfrom {0}\n", deleteMatch.Groups[1].Value));
