@@ -1,6 +1,6 @@
 ## Overview
 
-Exposes a service that will convert (vA specific) SQL DML (update, insert and merge) into select and partially validate parameters
+Service that will convert (vA specific) SQL DML (update, insert and merge) into select and partially validate parameters
 
 ## Usage
 
